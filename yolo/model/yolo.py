@@ -6,7 +6,7 @@ import torch.nn as nn
 from loguru import logger
 from omegaconf import ListConfig, OmegaConf
 
-from yolo.config.config import Config, Model, YOLOLayer
+from yolo.config.config import Config, ModelConfig, YOLOLayer
 from yolo.tools.dataset_preparation import prepare_weight
 from yolo.tools.drawer import draw_model
 from yolo.utils.logging_utils import log_model_structure
@@ -22,9 +22,9 @@ class YOLO(nn.Module):
                    parameters, and any other relevant configuration details.
     """
 
-    def __init__(self, model_cfg: Model, num_classes: int):
+    def __init__(self, model_cfg: ModelConfig):
         super(YOLO, self).__init__()
-        self.num_classes = num_classes
+        self.num_classes = model_cfg.class_num
         self.layer_map = get_layer_map()  # Get the map Dict[str: Module]
         self.model: List[YOLOLayer] = nn.ModuleList()
         self.build_model(model_cfg.model)
@@ -116,7 +116,7 @@ class YOLO(nn.Module):
             raise ValueError(f"Unsupported layer type: {layer_type}")
 
 
-def get_model(cfg: Config) -> YOLO:
+def create_model(cfg: Config) -> YOLO:
     """Constructs and returns a model from a Dictionary configuration file.
 
     Args:
@@ -126,7 +126,7 @@ def get_model(cfg: Config) -> YOLO:
         YOLO: An instance of the model defined by the given configuration.
     """
     OmegaConf.set_struct(cfg.model, False)
-    model = YOLO(cfg.model, cfg.class_num)
+    model = YOLO(cfg.model)
     logger.info("✅ Success load model")
     if cfg.weight:
         if os.path.exists(cfg.weight):
@@ -134,7 +134,7 @@ def get_model(cfg: Config) -> YOLO:
             logger.info("✅ Success load model weight")
         else:
             logger.info(f"🌐 Weight {cfg.weight} not found, try downloading")
-            prepare_weight(weight_name=cfg.weight)
+            prepare_weight(weight_path=cfg.weight)
 
     log_model_structure(model.model)
     draw_model(model=model)

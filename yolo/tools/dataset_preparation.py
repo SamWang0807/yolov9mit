@@ -52,12 +52,12 @@ def check_files(directory, expected_count=None):
     return len(files) == expected_count if expected_count is not None else bool(files)
 
 
-def prepare_dataset(cfg: DatasetConfig):
+def prepare_dataset(dataset_cfg: DatasetConfig):
     """
     Prepares dataset by downloading and unzipping if necessary.
     """
-    data_dir = cfg.path
-    for data_type, settings in cfg.auto_download.items():
+    data_dir = dataset_cfg.path
+    for data_type, settings in dataset_cfg.auto_download.items():
         base_url = settings["base_url"]
         for dataset_type, dataset_args in settings.items():
             if dataset_type == "base_url":
@@ -81,15 +81,19 @@ def prepare_dataset(cfg: DatasetConfig):
                 logger.error(f"Error verifying the {dataset_type} dataset after extraction.")
 
 
-def prepare_weight(downlaod_link: Optional[str] = None, weight_name: str = "v9-c.pt"):
+def prepare_weight(downlaod_link: Optional[str] = None, weight_path: str = "v9-c.pt"):
+    weight_name = os.path.basename(weight_path)
     if downlaod_link is None:
         downlaod_link = "https://github.com/WongKinYiu/yolov9mit/releases/download/v1.0-alpha/"
     weight_link = f"{downlaod_link}{weight_name}"
 
-    if os.path.exists(weight_name):
-        logger.info(f"Weight file '{weight_name}' already exists.")
+    if not os.path.isdir(os.path.dirname(weight_path)):
+        os.makedirs(os.path.dirname(weight_path))
+
+    if os.path.exists(weight_path):
+        logger.info(f"Weight file '{weight_path}' already exists.")
     try:
-        download_file(weight_link, weight_name)
+        download_file(weight_link, weight_path)
     except requests.exceptions.RequestException as e:
         logger.warning(f"Failed to download the weight file: {e}")
 
